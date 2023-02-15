@@ -5,7 +5,7 @@
 #include <ash.h>
 
 static semd_t semd_table[MAXPROC];
-HLIST_HEAD(semdFree_h);
+LIST_HEAD(semdFree_h);
 HLIST_HEAD(semd_h);
 
 semd_t *getSemFromASH(int *semAdd){
@@ -25,7 +25,7 @@ semd_t *getSemFromASH(int *semAdd){
 void emptyBlockedProcQ(semd_t *s){
     if (emptyProcQ(&s->s_procq)){
         hlist_del(&s->s_link);
-        hlist_add_head(&s->s_link, &semdFree_h);
+        list_add(&s->s_freelink, &semdFree_h);
     }
 }
 
@@ -33,21 +33,20 @@ int insertBlocked(int *semAdd, pcb_t *p){
     semd_t *s = getSemFromASH(semAdd);
 
     if (s == NULL){
-        *s->s_key = 0;
-        p->p_semAdd = semAdd;
-        insertProcQ(&s->s_procq, p);
-    } else {
-        if (hlist_empty(&semdFree_h))
+        if (list_empty(&semdFree_h))
             return TRUE;
         
-        s = container_of(semdFree_h.first->next, semd_t, s_link);
-        hlist_del(semdFree_h.first->next);
+        s = container_of(semdFree_h.next, semd_t, s_link);
+        list_del(semdFree_h.next);
 
         p->p_semAdd = semAdd;
-        s->s_key = 0;
+        s->s_key = semAdd;
         INIT_LIST_HEAD(&s->s_procq);
         insertProcQ(&s->s_procq, p);
         hlist_add_head(&s->s_link, &semd_h);
+    } else {
+        p->p_semAdd = semAdd;
+        insertProcQ(&s->s_procq, p);
     }
 
     return FALSE;
@@ -92,9 +91,10 @@ pcb_t *headBlocked(int *semAdd){
 };
 
 void initASH(){
-    INIT_HLIST_HEAD(&semdFree_h);
+    INIT_LIST_HEAD(&semdFree_h);
 
     for (int i = 0; i < MAXPROC; i++){
-
+        semd_t *s = &semd_table[i];
+        list_add(&s->s_freelink, &semdFree_h);
     }
 };
