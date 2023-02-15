@@ -31,68 +31,64 @@ pcb_t *allocPcb();
 void initPcbs();
 
 /**
- * @brief This method is used to initialize a variable to be tail pointer
- * to a process queue.
- * Return a pointer to the tail of an empty process queue; i.e. NULL
- * 
- * @return pcb_t* pointer to the tail of an empty process queue
+ * Create a pcb list, by initialising it as an empty list
  */
-pcb_t  *mkEmptyProcQ();
+void mkEmptyProcQ(struct list_head *head);
 
 /**
- * @brief Return TRUE if the queue whose tail is pointed to by tp is
+ * @brief Return TRUE if the queue whose tail is pointed to by head is
  * empty. Return FALSE otherwise
  * 
- * @param tp queue tail pointer
+ * @param head queue
  * @return int true if queue is empty else false if queue is not empty
  */
-int emptyProcQ(pcb_t *tp);
+int emptyProcQ(struct list_head *head);
 
 /**
  * @brief Insert the pcb pointed to by p into the process queue whose tail-
- * pointer is pointed to by tp. Note the double indirection through
+ * pointer is pointed to by head. Note the double indirection through
  * tp to allow for the possible updating of the tail pointer as well
  * 
- * @param tp queue tail pointer
+ * @param head queue
  * @param p pcb
  * 
  */
-void insertProcQ(pcb_t **tp, pcb_t *p);
+void insertProcQ(struct list_head *head, pcb_t *p);
 
 /**
  * @brief Remove the first (i.e. head) element from the process queue
- * whose tail-pointer is pointed to by tp. Return NULL if the pro-
+ * whose tail-pointer is pointed to by head. Return NULL if the pro-
  * cess queue was initially empty; otherwise return the pointer to
  * the removed element. Update the process queue’s tail pointer if
  * necessary
  * 
- * @param tp queue tail pointer
+ * @param head queue
  * @return pcb_t* NULL if queue is empty else pointer to removed element
  */
-pcb_t *removeProcQ(pcb_t **tp);
+pcb_t *removeProcQ(struct list_head *head);
 
 /**
  * @brief Remove the pcb pointed to by p from the process queue whose
- * tail-pointer is pointed to by tp. Update the process queue’s tail
+ * tail-pointer is pointed to by head. Update the process queue’s tail
  * pointer if necessary. If the desired entry is not in the indicated
  * queue (an error condition), return NULL; otherwise, return p.
  * Note that p can point to any element of the process queue
  * 
- * @param tp queue tail pointer
+ * @param haed queue
  * @param p pcb
  * @return pcb_t* NULL if p is not in tp else p
  */
-pcb_t *outProcQ(pcb_t **tp, pcb_t *p);
+pcb_t *outProcQ(struct list_head *head, pcb_t *p);
 
 /**
  * @brief Return a pointer to the first pcb from the process queue whose
- * tail is pointed to by tp. Do not remove this pcbfrom the process
+ * tail is pointed to by head. Do not remove this pcbfrom the process
  * queue. Return NULL if the process queue is empty
  * 
- * @param tp queue tail pointer
+ * @param head queue
  * @return pcb_t* NULL if tp is empty else first pcb is tp
  */
-pcb_t *headProcQ(pcb_t *tp);
+pcb_t *headProcQ(struct list_head *head);
 
 /**
  * @brief Return TRUE if the pcb pointed to by p has no children.
