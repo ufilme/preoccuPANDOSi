@@ -9,12 +9,13 @@ void initPcbs(){
     INIT_LIST_HEAD(&pcbFree_h);
 
     for (int i = 0; i < MAXPROC; i++){
-        list_add(&pcbFree_table[i].p_list, &pcbFree_h);
+        pcb_t *p = &pcbFree_table[i];
+        list_add(&p->p_list, &pcbFree_h);
     }
 };
 
 void freePcb(pcb_t *p){
-    list_add(&p->p_list, &pcbFree_h);
+    list_add_tail(&p->p_list, &pcbFree_h);
 };
 
 pcb_t *allocPcb(){
@@ -29,23 +30,8 @@ pcb_t *allocPcb(){
     INIT_LIST_HEAD(&el->p_child);
     INIT_LIST_HEAD(&el->p_sib);
 
-    el->p_s.entry_hi = 0;
-    el->p_s.cause = 0;
-    el->p_s.status = 0;
-    el->p_s.pc_epc = 0;
-    for (int i = 0; i < STATE_GPR_LEN; i++)
-        el->p_s.gpr[i] = 0;
-    el->p_s.hi = 0;
-    el->p_s.lo = 0;
-
     el->p_time = 0;
     el->p_semAdd = NULL;
-
-    for (int i = 0; i < NS_TYPE_MAX; i++){
-        el->namespaces[i]->n_type = 0;
-        LIST_HEAD(n_link);
-        el->namespaces[i]->n_link = n_link;
-    }
 
     return el;
 };
@@ -61,7 +47,7 @@ int emptyProcQ(struct list_head *head){
 };
 
 void insertProcQ(struct list_head* head, pcb_t *p){
-    list_add(&p->p_list, head);
+    list_add_tail(&p->p_list, head);
 };
 
 pcb_t* headProcQ(struct list_head *head){
@@ -98,7 +84,7 @@ int emptyChild(pcb_t *p){
 };
 
 void insertChild(pcb_t *prnt, pcb_t *p){
-    list_add_tail(&p->p_list, &prnt->p_child);
+    list_add_tail(&p->p_sib, &prnt->p_child);
     p->p_parent = prnt;
 };
 

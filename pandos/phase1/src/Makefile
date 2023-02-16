@@ -13,7 +13,7 @@ SUPDIR = $(UMPS3_DIR_PREFIX)/share/umps3
 
 DEFS = ../h/pandos_const.h ../h/pandos_types.h $(INCDIR)/libumps.h Makefile
 
-OBJS = p1test.o pcb.o ash.o
+OBJS = p1test.o pcb.o ash.o ns.o
 CFLAGS = -ffreestanding -ansi -Wall -c -mips1 -mabi=32 -mfp32 \
 -mno-gpopt -G 0 -fno-pic -mno-abicalls -I ../h -std=c17
 LDAOUTFLAGS = -G 0 -nostdlib -T $(SUPDIR)/umpsaout.ldscript
@@ -44,4 +44,4 @@ kernel: $(OBJS)
 	$(CC) $(CFLAGS) $<
 
 clean:
-	rm -f $(OBJS) kernel
+	rm -f $(OBJS) kernel *.umps
