@@ -1,9 +1,9 @@
 #include <list.h>
-#include "pandos_types.h"
+#include <pandos_types.h>
 #include <pcb.h>
 
-static LIST_HEAD(pcbFree_h);
 static pcb_t pcbFree_table[MAXPROC];
+static LIST_HEAD(pcbFree_h);
 
 void initPcbs(){
     INIT_LIST_HEAD(&pcbFree_h);

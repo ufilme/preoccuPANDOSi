@@ -1,6 +1,6 @@
-#include "pandos_types.h"
-#include <ns.h>
 #include <list.h>
+#include <pandos_types.h>
+#include <ns.h>
 
 static nsd_t pid_nsd[MAXPROC];
 static LIST_HEAD(pid_nsFree_h);

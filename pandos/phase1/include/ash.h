@@ -1,7 +1,7 @@
-#include "pandos_const.h"
-#include "list.h"
-#include "types.h"
-#include "pcb.h"
+#include <pandos_const.h>
+#include <list.h>
+#include <types.h>
+#include <pcb.h>
 
 /**
  * @brief Insert the pcb pointed to by p at the tail of the process queue

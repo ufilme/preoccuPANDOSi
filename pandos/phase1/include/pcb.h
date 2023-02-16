@@ -1,6 +1,6 @@
-#include "pandos_const.h"
-#include "list.h"
-#include "types.h"
+#include <pandos_const.h>
+#include <list.h>
+#include <types.h>
 
 /**
  * Insert the element pointed to by p onto the pcbFree list.

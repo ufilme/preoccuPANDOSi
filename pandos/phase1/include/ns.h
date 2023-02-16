@@ -1,7 +1,7 @@
-#include "pandos_const.h"
-#include "list.h"
-#include "types.h"
-#include "pcb.h"
+#include <pandos_const.h>
+#include <list.h>
+#include <types.h>
+#include <pcb.h>
 
 /**
  * @brief Initialize the type_nsFree_h list to contain all the elements of the
