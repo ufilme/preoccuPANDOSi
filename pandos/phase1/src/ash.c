@@ -5,8 +5,8 @@
 #include <ash.h>
 
 static semd_t semd_table[MAXPROC];
-LIST_HEAD(semdFree_h);
-HLIST_HEAD(semd_h);
+static LIST_HEAD(semdFree_h);
+static HLIST_HEAD(semd_h);
 
 semd_t *getSemFromASH(int *semAdd){
     semd_t *s;
@@ -36,7 +36,7 @@ int insertBlocked(int *semAdd, pcb_t *p){
         if (list_empty(&semdFree_h))
             return TRUE;
         
-        s = container_of(semdFree_h.next, semd_t, s_link);
+        s = container_of(semdFree_h.next, semd_t, s_freelink);
         list_del(semdFree_h.next);
 
         p->p_semAdd = semAdd;
@@ -59,6 +59,10 @@ pcb_t *removeBlocked(int *semAdd){
         return NULL;
     
     pcb_t *p = removeProcQ(&s->s_procq);
+
+    if (p == NULL)
+        return NULL;
+    
     p->p_semAdd = NULL;
 
     emptyBlockedProcQ(s);
@@ -69,10 +73,15 @@ pcb_t *removeBlocked(int *semAdd){
 pcb_t *outBlocked(pcb_t *p){
     semd_t *s = getSemFromASH(p->p_semAdd);
 
+    if (s == NULL)
+        return NULL;
+
     p = outProcQ(&s->s_procq, p);
 
     if (p == NULL)
         return NULL;
+
+    p->p_semAdd = NULL;
     
     emptyBlockedProcQ(s);
 
