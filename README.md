@@ -4,7 +4,6 @@
 From the phase directory run:
 
 ```sh
-mkdir -p build/{machine,objs}
 make
 ```
 

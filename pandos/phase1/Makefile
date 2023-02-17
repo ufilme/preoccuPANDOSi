@@ -1,3 +1,4 @@
+SHELL := bash
 # This makefile creates a kernel file from three source files:
 ifneq ($(wildcard /usr/bin/umps3),)
 	UMPS3_DIR_PREFIX = /usr
@@ -26,7 +27,10 @@ EF = umps3-elf2umps
 UDEV = umps3-mkdev
 
 #main target
-all: kernel.core.umps disk0.umps
+all: pre-build kernel.core.umps disk0.umps
+
+pre-build:
+	$(shell mkdir -p build/{machine,objs})
 
 # use umps3-mkdev to create the disk0 device
 disk0.umps:
