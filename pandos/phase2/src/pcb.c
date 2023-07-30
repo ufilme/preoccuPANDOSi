@@ -112,3 +112,12 @@ pcb_t *outChild(pcb_t *p){
 
     return p;
 };
+
+pcb_t* getProcessByPid(memaddr pid){
+    for (int i = 0; i < MAXPROC; i++){
+        if (pcbFree_table[i].p_pid == pid)
+            return &pcbFree_table[i];
+    }
+
+    return NULL;
+};

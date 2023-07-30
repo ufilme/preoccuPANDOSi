@@ -127,3 +127,5 @@ pcb_t *removeChild(pcb_t *p);
  * @param pcb_t* NULL if p has no parent else p
  */
 pcb_t *outChild(pcb_t *p);
+
+pcb_t* getProcessByPid(memaddr pid)
