@@ -89,6 +89,14 @@ void _verhogen(pcb_t *p){
     }
 }
 
+void _do_io(pcb_t *p){
+    //TO DO
+}
+
+void _get_cpu_time(pcb_t *p){
+    p->p_s.reg_v0 = p->p_time;
+}
+
 void handle_syscall(){
     pcb_t *currentProcess = getCurrentProcess();
     if (currentProcess->p_s.status & STATUS_KUp){
@@ -107,11 +115,13 @@ void handle_syscall(){
                 _passeren(currentProcess);
                 break;
             case 4:
-                _verhogen(currentProcess)
+                _verhogen(currentProcess);
                 break;
             case 5:
+                _do_io(currentProcess);
                 break;
             case 6:
+                _get_cpu_time(currentProcess);
                 break;
             case 7:
                 break;
