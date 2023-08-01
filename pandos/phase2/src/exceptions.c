@@ -45,9 +45,54 @@ void _terminate_process(pcb_t *p){
     }
 }
 
+void _passeren(pcb_t *p){
+    int *sem_value = p->p_s.reg_a1;
+    if (*sem_value == 1){
+        //P is permitted, process continues to run
+        pcb_t *unblocked = removeBlocked(sem_value)
+        if (unblocked == NULL){
+            //there are no blocked processes, decrement value
+            *sem_value = 0;
+        }
+        else{
+            //one process was removed from the blocked pcb list
+            //add it to the ready queue
+            addToReadyQueue(unblocked);
+        }
+    }
+    else{
+        //process is blocked on the semaphore, call scheduler
+        insertBlocked(sem_value, p);
+        schedule();
+    }
+}
+
+void _verhogen(pcb_t *p){
+    int *sem_value = p->p_s.reg_a1;
+    if (*sem_value == 0){
+        //V is permitted, process continues to run
+        pcb_t *unblocked = removeBlocked(sem_value)
+        if (unblocked == NULL){
+            //there are no blocked processes, increment value
+            *sem_value = 1;
+        }
+        else{
+            //one process was removed from the blocked pcb list
+            //add it to the ready queue
+            addToReadyQueue(unblocked);
+        }
+    }
+    else{
+        //process is blocked on the semaphore, call scheduler
+        insertBlocked(sem_value, p);
+        schedule();
+    }
+}
+
 void handle_syscall(){
     pcb_t *currentProcess = getCurrentProcess();
     if (currentProcess->p_s.status & STATUS_KUp){
+        //killed if process is not in kernel mode
         kill_progeny(currentProcess);
         return;
     } else {
@@ -59,8 +104,10 @@ void handle_syscall(){
                 _terminate_process(currentProcess);
                 break;
             case 3:
+                _passeren(currentProcess);
                 break;
             case 4:
+                _verhogen(currentProcess)
                 break;
             case 5:
                 break;
@@ -75,6 +122,7 @@ void handle_syscall(){
             case 10:
                 break;
             default:
+                //killed if called a syscall with non-existing code
                 kill_progeny(currentProcess);
                 break;
         }
