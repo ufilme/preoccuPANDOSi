@@ -10,6 +10,10 @@ void handle_TLB_trap(){
     
 }
 
+void handle_program_trap(){
+    //TODO
+}
+
 void _create_process(pcb_t *p){
     pcb_t *new = allocPcb();
     new->p_s = p->p_s.reg_a1;
@@ -91,10 +95,20 @@ void _verhogen(pcb_t *p){
 
 void _do_io(pcb_t *p){
     //TO DO
+    incrementSBlockedCount();
+    //TO DO
+    decrementProcessCount();
 }
 
 void _get_cpu_time(pcb_t *p){
     p->p_s.reg_v0 = p->p_time;
+}
+
+void _wait_for_clock(pcb_t *p){ //TO DO
+    //process is blocked on the pseudo-clock semaphore, call scheduler
+
+    //insertBlocked(pseudo-clock-semaphore, p);
+    schedule();
 }
 
 void handle_syscall(){
@@ -124,6 +138,7 @@ void handle_syscall(){
                 _get_cpu_time(currentProcess);
                 break;
             case 7:
+                _wait_for_clock(currentProcess);
                 break;
             case 8:
                 break;
@@ -137,10 +152,6 @@ void handle_syscall(){
                 break;
         }
     }
-}
-
-void handle_program_trap(){
-    //TODO
 }
 
 void eccccezzzioni(){
