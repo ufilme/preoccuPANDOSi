@@ -21,6 +21,14 @@ void decrementProcessCount(){
     processCount--;
 }
 
+void incrementSBlockedCount(){
+    softBlockCount++;
+}
+
+void decrementSBlockedCount(){
+    softBlockCount--;
+}
+
 void addToReadyQueue(pcb_t *p){
     insertProcQ(&readyQueue, p);
 }
