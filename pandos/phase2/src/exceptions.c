@@ -71,6 +71,12 @@ void _passeren(pcb_t *p){
     }
 }
 
+void P(pcb_t *p, int *sem_value){
+    if (sem_value != NULL)
+        p->p_s.reg_a1 = sem_value;
+    _passeren(p);
+}
+
 void _verhogen(pcb_t *p){
     int *sem_value = p->p_s.reg_a1;
     if (*sem_value == 0){
@@ -92,12 +98,15 @@ void _verhogen(pcb_t *p){
         schedule();
     }
 }
-
+// //TO DO
+//     incrementSBlockedCount();
+//     //TO DO
+//     decrementProcessCount();
 void _do_io(pcb_t *p){
-    //TO DO
-    incrementSBlockedCount();
-    //TO DO
-    decrementProcessCount();
+    int *cmdAddr, *cmdValue, *sem;
+    int cmdAddr = p->p_s.reg_a1;
+    int cmdValue = p->p_s.reg_a2;
+
 }
 
 void _get_cpu_time(pcb_t *p){
@@ -106,9 +115,24 @@ void _get_cpu_time(pcb_t *p){
 
 void _wait_for_clock(pcb_t *p){ //TO DO
     //process is blocked on the pseudo-clock semaphore, call scheduler
+    int *sem = getClockSemaphore();
+    insertBlocked(sem, p);
+    P(p, sem);
+}
 
-    //insertBlocked(pseudo-clock-semaphore, p);
-    schedule();
+support_t *_get_support_data(pcb_t *p){
+    return p->p_supportStruct;
+}
+
+int _get_process_id(pcb_t *p){
+    if (p->p_s.reg_a1 == 0)
+        return p->p_pid;
+    else {
+        if (p->namespaces[0] == p->p_parent->namespaces[0])
+            return p->p_parent->p_pid;
+        else
+            return 0;
+    }   
 }
 
 void handle_syscall(){
@@ -126,7 +150,7 @@ void handle_syscall(){
                 _terminate_process(currentProcess);
                 break;
             case 3:
-                _passeren(currentProcess);
+                _passeren(currentProcess, NULL);
                 break;
             case 4:
                 _verhogen(currentProcess);
@@ -141,8 +165,10 @@ void handle_syscall(){
                 _wait_for_clock(currentProcess);
                 break;
             case 8:
+                _get_support_data(currentProcess);
                 break;
             case 9:
+                _get_process_id(currentProcess);
                 break;
             case 10:
                 break;

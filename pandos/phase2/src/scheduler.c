@@ -4,10 +4,21 @@
 #include "scheduler.h"
 #include "pandos_const.h"
 
+/*
+    5 devices:
+        disk, flash, network card, printer and terminal
+        * 8 instances of each device 
+            + terminal devices are actually two independent sub-devices
+    1 pseudo-device
+        the pseudo-clock
+*/
+#define DEVICE_COUNT 49
+
 int processCount;
 int softBlockCount;
 pcb_t *currentProcess;
 static LIST_HEAD(readyQueue);
+int semdCount[DEVICE_COUNT];
 
 pcb_t *getCurrentProcess(){
     return currentProcess;
@@ -37,6 +48,10 @@ void removeFromReadyQueue(pcb_t *p){
     outProcQ(&readyQueue, p);
 }
 
+void *getClockSemaphore(){
+    return &semdCount[DEVICE_COUNT - 1];
+}
+
 void schedule(){
     //check if there are processes in the ready queue
     if (processCount == 0)
@@ -64,6 +79,9 @@ void initScheduler(){
     processCount = 1;
     softBlockCount = 0;
     currentProcess = NULL;
+
+    for (int i = 0; i < DEVICE_COUNT; i++)
+        semdCount[i] = 0;
 
     mkEmptyProcQ(&readyQueue);
 }

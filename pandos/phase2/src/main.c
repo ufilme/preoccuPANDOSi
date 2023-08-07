@@ -7,21 +7,9 @@
 #include <scheduler.h>
 #include <exceptions.h>
 
-/*
-    5 devices:
-        disk, flash, network card, printer and terminal
-        * 8 instances of each device 
-            + terminal devices are actually two independent sub-devices
-    1 pseudo-device
-        the pseudo-clock
-*/
-#define DEVICE_COUNT 49
 #define US_TO_DS 100000 // microseconds to 100ms
 #define TIME_SLICE 5000
 #define CONVERT_TIME (time) time * (*(int *)(TIMESCALEADDR))
-
-
-int semdCount[DEVICE_COUNT];
 
 
 int main(int argc, char *agrv[]){
@@ -35,9 +23,6 @@ int main(int argc, char *agrv[]){
     puv->tlb_refill_stackPtr = (memaddr) KERNELSTACK;
     puv->exception_handler = (memaddr) eccccezzzioni;
     puv->exception_stackPtr = (memaddr) KERNELSTACK;
-
-    for (int i = 0; i < DEVICE_COUNT; i++)
-        semdCount[i] = 0;
 
     setTIMER(TRANSLATE_TIME(TIME_SLICE));      // set local timer for time slice
     LDIT(US_TO_DS);     // load timer interval
