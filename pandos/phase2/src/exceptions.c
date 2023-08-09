@@ -98,6 +98,7 @@ void _verhogen(pcb_t *p){
         schedule();
     }
 }
+
 // //TO DO
 //     incrementSBlockedCount();
 //     //TO DO
@@ -116,23 +117,40 @@ void _get_cpu_time(pcb_t *p){
 void _wait_for_clock(pcb_t *p){ //TO DO
     //process is blocked on the pseudo-clock semaphore, call scheduler
     int *sem = getClockSemaphore();
-    insertBlocked(sem, p);
+    //insertBlocked(sem, p);
     P(p, sem);
 }
 
-support_t *_get_support_data(pcb_t *p){
-    return p->p_supportStruct;
+void _get_support_data(pcb_t *p){
+    p->p_s.reg_v0 = p->p_supportStruct;
 }
 
-int _get_process_id(pcb_t *p){
+void _get_process_id(pcb_t *p){
     if (p->p_s.reg_a1 == 0)
-        return p->p_pid;
+        p->p_s.reg_v0 = p->p_pid;
     else {
         if (p->namespaces[0] == p->p_parent->namespaces[0])
-            return p->p_parent->p_pid;
+            p->p_s.reg_v0 = p->p_parent->p_pid;
         else
-            return 0;
+            p->p_s.reg_v0 = 0;
     }   
+}
+
+void _get_children_pid(pcb_t *p){
+    int children_number = 0;
+    struct list_head child = p->p_child;
+
+    while (child != NULL)
+    {
+        if (i < p->p_s.reg_a2){
+            p->p_s.reg_a1[i] = child->p_pid;
+        }
+
+        children_number++;
+        child = child->next;
+    }
+
+    p->p_s.reg_v0 = children_number;
 }
 
 void handle_syscall(){
@@ -172,6 +190,7 @@ void handle_syscall(){
                 break;
             case 10:
                 break;
+                _get_children_pid(currentProcess);
             default:
                 //killed if called a syscall with non-existing code
                 kill_progeny(currentProcess);

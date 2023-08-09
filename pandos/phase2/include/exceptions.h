@@ -10,39 +10,54 @@ void handle_program_trap();
 void _create_process(pcb_t *p);
 
 /*
- * SYSCALL 2 
+ * kills process and his progeny
 */
 void kill_progeny(pcb_t *p);
 
 /*
- * SYSCALL 3
+ * SYSCALL 2
 */
 void _terminate_process(pcb_t *p);
 
 /*
- * SYSCALL 4
+ * SYSCALL 3
 */
 void _passeren(pcb_t *p);
 
 /*
- * SYSCALL 5
+ * SYSCALL 4
 */
 void _verhogen(pcb_t *p);
 
 /*
- * SYSCALL 6
+ * SYSCALL 5
 */
 void _do_io(pcb_t *p);
 
 /*
- * SYSCALL 7
+ * SYSCALL 6
 */
 void _get_cpu_time(pcb_t *p);
 
 /*
- * SYSCALL 8
+ * SYSCALL 7
 */
 void _wait_for_clock(pcb_t *p);
+
+/*
+ * SYSCALL 8
+*/
+void _get_support_data(pcb_t *p);
+
+/*
+ * SYSCALL 9
+*/
+void _get_process_id(pcb_t *p);
+
+/*
+ * SYSCALL 10
+*/
+void _get_children_pid(pcb_t *p);
 
 /*
  * Terminate calling process if not in kernel mode
