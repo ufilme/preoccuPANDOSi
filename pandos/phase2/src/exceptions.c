@@ -2,16 +2,62 @@
 #include "scheduler.h"
 #include "pandos_const.h"
 
-void handle_interrupt(){
-    //TODO
+#define US_TO_DS 100000 // microseconds to 100ms
+#define TIME_SLICE 5000
+
+void _interrupt_local_timer(){
+    pcb_t *currentProcess = getCurrentProcess();
+    setTIMER(TRANSLATE_TIME(TIME_SLICE));
+    memcpy(&currentProcess->p_s, (state_t *)BIOSDATAPAGE, sizeof(state_t));
+    addToReadyQueue(currentProcess);
+    #31#
+}
+
+void _interrupt_timer(){
+    int *sem;
+    LDIT(US_TO_DS);     // load timer interval
+    while ((sem = getClockSemaphore()) != 1){
+        V(sem);
+    }
+}
+
+void _interrupt_devices(int cause){
+    //TO DO
+}
+
+void _interrupt_terminal(){
+    //TO DO
+}
+
+void handle_interrupt(int cause){
+    if (cause & CAUSE_IP(IL_CPUTIMER))
+        return _interrupt_local_timer();
+    else if (cause & CAUSE_IP(IL_TIMER))
+        return _interrupt_timer();
+    else if (cause & (CAUSE_IP(IL_DISK) | CAUSE_IP(IL_FLASH) | CAUSE_IP(IL_ETHERNET) | CAUSE_IP(IL_PRINTER)))
+        return _interrupt_devices(cause);
+    else if (cause & CAUSE_IP(IL_TERMINAL))
+        return _interrupt_terminal();
+}
+
+void _pass_up_or_die(memaddr addr){
+    context_t context;
+    pcb_t *currentProcess = getCurrentProcess();
+    if (currentProcess->p_supportStruct == NULL){
+        _terminate_process(currentProcess);
+    } else {
+        memcpy(&currentProcess->p_supportStruct->sup_exceptContext[addr], BIOSDATAPAGE, sizeof(state_t));
+        context = &currentProcess->p_support->sup_except_context[addr]
+        LDCXT(context->stack_ptr, context->status, context->pc);
+    }
 }
 
 void handle_TLB_trap(){
-    
+    _pass_up_or_die((memaddr)PGFAULTEXCEPT);
 }
 
 void handle_program_trap(){
-    //TODO
+    _pass_up_or_die((memaddr)GENERALEXCEPT);
 }
 
 void _create_process(pcb_t *p){
@@ -65,9 +111,8 @@ void _passeren(pcb_t *p){
         }
     }
     else{
-        //process is blocked on the semaphore, call scheduler
+        //process is blocked on the semaphore, call scheduler (done in eccccezzzioni)
         insertBlocked(sem_value, p);
-        schedule();
     }
 }
 
@@ -93,10 +138,16 @@ void _verhogen(pcb_t *p){
         }
     }
     else{
-        //process is blocked on the semaphore, call scheduler
+        //process is blocked on the semaphore, call scheduler (done in eccccezzzioni)
         insertBlocked(sem_value, p);
-        schedule();
     }
+}
+
+//TO DO
+void V(pcb_t *p, int *sem_value){
+    if (sem_value != NULL)
+        p->p_s.reg_a1 = sem_value;
+    _verhogen(p);
 }
 
 // //TO DO
@@ -196,12 +247,22 @@ void handle_syscall(){
                 kill_progeny(currentProcess);
                 break;
         }
+        switch(currentProcess->p_s.reg_a0){
+            case 3:
+            case 5:
+            case 7:
+                memcpy(&currentProcess->p_s, BIOSDATAPAGE, sizeof(state_t));
+                break;
+        }
     }
 }
 
 void eccccezzzioni(){
     size_t cause = getCAUSE();
+    int start_tod, end_tod;
+    pcb_t *currentProcess;
     CAUSE_GET_EXCCODE(cause);
+
     switch(cause){
         case 0:
             handle_interrupt();
@@ -212,10 +273,17 @@ void eccccezzzioni(){
             handle_TLB_trap();
             break;
         case 8:
+            STCK(&start_tod);
             handle_syscall();
+            STCK(&end_tod);
+            currentProcess = getCurrentProcess();
+            currentProcess->p_s.pc_epc += WORDLEN;
+            currentProcess->p_time += (end_tod - start_tod);
+            LDST(BIOSDATAPAGE);
             break;
         default:
             handle_program_trap();
             break;
     }
+    schedule();
 }

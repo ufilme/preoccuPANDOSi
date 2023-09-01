@@ -48,12 +48,12 @@ void removeFromReadyQueue(pcb_t *p){
     outProcQ(&readyQueue, p);
 }
 
-void *getClockSemaphore(){
+int *getClockSemaphore(){
     return &semdCount[DEVICE_COUNT - 1];
 }
 
-void schedule(){
-    //check if there are processes in the ready queue
+void schedule(bool isBlocked){
+    // check if there are processes in the ready queue
     if (processCount == 0)
         HALT();
     
@@ -68,7 +68,12 @@ void schedule(){
 
     setTIMER(TRANSLATE_TIME(TIME_SLICE));
 
-    //get the first process in the ready queue
+    if (currentProcess != NULL and !isBlocked){
+        // adds pointer to the pcb pointed by currentProcess to the readyQueue
+        addToReadyQueue(&(*currentProcess));
+    }
+
+    // get the first process in the ready queue
     pcb_t *p = removeProcQ(&readyQueue);
     currentProcess = p;
     currentProcess->p_s.status ^= STATUS_TE;

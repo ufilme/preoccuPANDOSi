@@ -7,10 +7,7 @@
 #include <scheduler.h>
 #include <exceptions.h>
 
-#define US_TO_DS 100000 // microseconds to 100ms
-#define TIME_SLICE 5000
 #define CONVERT_TIME (time) time * (*(int *)(TIMESCALEADDR))
-
 
 int main(int argc, char *agrv[]){
     initPcbs();
@@ -37,7 +34,7 @@ int main(int argc, char *agrv[]){
     
     initScheduler();
     addToReadyQueue(p)
-    schedule();
+    schedule(0);
 
     return 0;
 }
