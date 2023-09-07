@@ -1,4 +1,5 @@
 #include <pandos_const.h>
+#include <pandos_types.h>
 #include <list.h>
 #include <types.h>
 
@@ -128,4 +129,4 @@ pcb_t *removeChild(pcb_t *p);
  */
 pcb_t *outChild(pcb_t *p);
 
-pcb_t* getProcessByPid(memaddr pid)
+pcb_t* getProcessByPid(memaddr pid);

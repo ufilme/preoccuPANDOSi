@@ -1,6 +1,7 @@
 #include "exceptions.h"
 #include "scheduler.h"
 #include "pandos_const.h"
+#include <umps/arch.h>
 
 #define US_TO_DS 100000 // microseconds to 100ms
 #define TIME_SLICE 5000
@@ -10,7 +11,6 @@ void _interrupt_local_timer(){
     setTIMER(TRANSLATE_TIME(TIME_SLICE));
     memcpy(&currentProcess->p_s, (state_t *)BIOSDATAPAGE, sizeof(state_t));
     addToReadyQueue(currentProcess);
-    #31#
 }
 
 void _interrupt_timer(){
@@ -47,7 +47,7 @@ void _pass_up_or_die(memaddr addr){
         _terminate_process(currentProcess);
     } else {
         memcpy(&currentProcess->p_supportStruct->sup_exceptContext[addr], BIOSDATAPAGE, sizeof(state_t));
-        context = &currentProcess->p_support->sup_except_context[addr]
+        context = &currentProcess->p_supportStruct->sup_exceptContext[addr]
         LDCXT(context->stack_ptr, context->status, context->pc);
     }
 }
@@ -82,6 +82,11 @@ void kill_progeny(pcb_t *p){
     }
 
     decrementProcessCount();
+    int *sem = p->p_semAdd;
+    if (*sem < 0)           //(*sem < 0 && not blocked on a device sem)
+        *sem = *sem + 1;
+    if (sem != NULL)
+        decrementSBlockedCount();
     removeFromReadyQueue(p);
     freePcb(p);
 }
@@ -93,6 +98,21 @@ void _terminate_process(pcb_t *p){
         p = getProcessByPid(p->p_s.reg_a1);
         kill_progeny(p);
     }
+    decrementProcessCount();
+    //TODO check it p is blocked on a device sem, in that case decrease sblocked count
+    outChild(p);   //removes p from its parent's children list
+
+    /*
+    ** If the value of a semaphore is negative, it is an invariant that the
+    ** absolute value of the semaphore equal the number of pcb’s blocked on that
+    ** semaphore. Hence if a terminated process is blocked on a semaphore,
+    ** the value of the semaphore must be adjusted; i.e. incremented.
+    */
+    int *sem = p->p_semAdd;
+    if (*sem < 0)           //(*sem < 0 && not blocked on a device sem)
+        *sem = *sem + 1;
+    if (sem != NULL)
+        decrementSBlockedCount();
 }
 
 void _passeren(pcb_t *p){
@@ -158,7 +178,9 @@ void _do_io(pcb_t *p){
     int *cmdAddr, *cmdValue, *sem;
     int cmdAddr = p->p_s.reg_a1;
     int cmdValue = p->p_s.reg_a2;
+    incrementSBlockedCount();
 
+    decrementProcessCount();
 }
 
 void _get_cpu_time(pcb_t *p){

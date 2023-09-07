@@ -7,6 +7,8 @@ void initScheduler();
  */
 void schedule();
 
+void addToReadyQueue(pcb_t *p);
+
 /**
  * Increases the processCount variable by 1
  */
