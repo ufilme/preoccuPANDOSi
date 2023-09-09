@@ -1,6 +1,7 @@
 #include "exceptions.h"
 #include "scheduler.h"
 #include "pandos_const.h"
+#include <string.h>
 #include <umps/arch.h>
 
 #define US_TO_DS 100000 // microseconds to 100ms
@@ -16,7 +17,7 @@ void _interrupt_local_timer(){
 void _interrupt_timer(){
     int *sem;
     LDIT(US_TO_DS);     // load timer interval
-    while ((sem = getClockSemaphore()) != 1){
+    while (*(sem = getClockSemaphore()) != 1){
         V(sem);
     }
 }
@@ -41,14 +42,14 @@ void handle_interrupt(int cause){
 }
 
 void _pass_up_or_die(memaddr addr){
-    context_t context;
+    context_t *context;
     pcb_t *currentProcess = getCurrentProcess();
     if (currentProcess->p_supportStruct == NULL){
         _terminate_process(currentProcess);
     } else {
         memcpy(&currentProcess->p_supportStruct->sup_exceptContext[addr], BIOSDATAPAGE, sizeof(state_t));
-        context = &currentProcess->p_supportStruct->sup_exceptContext[addr]
-        LDCXT(context->stack_ptr, context->status, context->pc);
+        context = &currentProcess->p_supportStruct->sup_exceptContext[addr];
+        LDCXT(context->stackPtr, context->status, context->pc);
     }
 }
 
@@ -62,7 +63,9 @@ void handle_program_trap(){
 
 void _create_process(pcb_t *p){
     pcb_t *new = allocPcb();
-    new->p_s = p->p_s.reg_a1;
+    //a1 should contain a pointer to a processor state (state_t *)
+    //p_s is of type state_t
+    new->p_s = *(p->p_s.reg_a1);
     new->p_supportStruct = p->p_s.reg_a2;
     if (p->p_s.reg_a3)
         addNamespace(new, p->p_s.reg_a3);
@@ -119,7 +122,7 @@ void _passeren(pcb_t *p){
     int *sem_value = p->p_s.reg_a1;
     if (*sem_value == 1){
         //P is permitted, process continues to run
-        pcb_t *unblocked = removeBlocked(sem_value)
+        pcb_t *unblocked = removeBlocked(sem_value);
         if (unblocked == NULL){
             //there are no blocked processes, decrement value
             *sem_value = 0;
@@ -146,7 +149,7 @@ void _verhogen(pcb_t *p){
     int *sem_value = p->p_s.reg_a1;
     if (*sem_value == 0){
         //V is permitted, process continues to run
-        pcb_t *unblocked = removeBlocked(sem_value)
+        pcb_t *unblocked = removeBlocked(sem_value);
         if (unblocked == NULL){
             //there are no blocked processes, increment value
             *sem_value = 1;
@@ -176,8 +179,8 @@ void V(pcb_t *p, int *sem_value){
 //     decrementProcessCount();
 void _do_io(pcb_t *p){
     int *cmdAddr, *cmdValue, *sem;
-    int cmdAddr = p->p_s.reg_a1;
-    int cmdValue = p->p_s.reg_a2;
+    cmdAddr = p->p_s.reg_a1;
+    cmdValue = p->p_s.reg_a2;
     incrementSBlockedCount();
 
     decrementProcessCount();
@@ -211,12 +214,12 @@ void _get_process_id(pcb_t *p){
 
 void _get_children_pid(pcb_t *p){
     int children_number = 0;
-    struct list_head child = p->p_child;
+    struct list_head *child = &(p->p_child);
 
     while (child != NULL)
     {
-        if (i < p->p_s.reg_a2){
-            p->p_s.reg_a1[i] = child->p_pid;
+        if (children_number < p->p_s.reg_a2){
+            p->p_s.reg_a1[children_number] = child->p_pid;
         }
 
         children_number++;
@@ -241,7 +244,7 @@ void handle_syscall(){
                 _terminate_process(currentProcess);
                 break;
             case 3:
-                _passeren(currentProcess, NULL);
+                _passeren(currentProcess);
                 break;
             case 4:
                 _verhogen(currentProcess);
@@ -281,13 +284,13 @@ void handle_syscall(){
 
 void eccccezzzioni(){
     size_t cause = getCAUSE();
-    int start_tod, end_tod;
+    cpu_t start_tod, end_tod;
     pcb_t *currentProcess;
     CAUSE_GET_EXCCODE(cause);
 
     switch(cause){
         case 0:
-            handle_interrupt();
+            handle_interrupt(cause);
             break;
         case 1:
         case 2:
@@ -295,9 +298,9 @@ void eccccezzzioni(){
             handle_TLB_trap();
             break;
         case 8:
-            STCK(&start_tod);
+            STCK(start_tod);
             handle_syscall();
-            STCK(&end_tod);
+            STCK(end_tod);
             currentProcess = getCurrentProcess();
             currentProcess->p_s.pc_epc += WORDLEN;
             currentProcess->p_time += (end_tod - start_tod);
