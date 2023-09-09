@@ -2,7 +2,9 @@
 #include "scheduler.h"
 #include "pandos_const.h"
 #include <string.h>
+#include <umps/libumps.h>
 #include <umps/arch.h>
+#include <umps/cp0.h>
 
 #define US_TO_DS 100000 // microseconds to 100ms
 #define TIME_SLICE 5000
@@ -47,7 +49,7 @@ void _pass_up_or_die(memaddr addr){
     if (currentProcess->p_supportStruct == NULL){
         _terminate_process(currentProcess);
     } else {
-        memcpy(&currentProcess->p_supportStruct->sup_exceptContext[addr], BIOSDATAPAGE, sizeof(state_t));
+        memcpy(&currentProcess->p_supportStruct->sup_exceptContext[addr], (state_t *)BIOSDATAPAGE, sizeof(state_t));
         context = &currentProcess->p_supportStruct->sup_exceptContext[addr];
         LDCXT(context->stackPtr, context->status, context->pc);
     }
@@ -65,7 +67,8 @@ void _create_process(pcb_t *p){
     pcb_t *new = allocPcb();
     //a1 should contain a pointer to a processor state (state_t *)
     //p_s is of type state_t
-    new->p_s = *(p->p_s.reg_a1);
+    //new->p_s = *(p->p_s.reg_a1);
+    new->p_s = *(state_t *)p->p_s.reg_a1;
     new->p_supportStruct = p->p_s.reg_a2;
     if (p->p_s.reg_a3)
         addNamespace(new, p->p_s.reg_a3);
@@ -276,21 +279,19 @@ void handle_syscall(){
             case 3:
             case 5:
             case 7:
-                memcpy(&currentProcess->p_s, BIOSDATAPAGE, sizeof(state_t));
+                memcpy(&currentProcess->p_s, (state_t *)BIOSDATAPAGE, sizeof(state_t));
                 break;
         }
     }
 }
 
 void eccccezzzioni(){
-    size_t cause = getCAUSE();
     cpu_t start_tod, end_tod;
     pcb_t *currentProcess;
-    CAUSE_GET_EXCCODE(cause);
 
-    switch(cause){
+    switch(CAUSE_GET_EXCCODE(getCAUSE())){
         case 0:
-            handle_interrupt(cause);
+            handle_interrupt(CAUSE_GET_EXCCODE(getCAUSE()));
             break;
         case 1:
         case 2:
@@ -304,11 +305,11 @@ void eccccezzzioni(){
             currentProcess = getCurrentProcess();
             currentProcess->p_s.pc_epc += WORDLEN;
             currentProcess->p_time += (end_tod - start_tod);
-            LDST(BIOSDATAPAGE);
+            LDST((state_t *)BIOSDATAPAGE);
             break;
         default:
             handle_program_trap();
             break;
     }
-    schedule();
+    schedule(false);
 }

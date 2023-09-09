@@ -1,7 +1,7 @@
 #include <pandos_const.h>
 #include <pandos_types.h>
-#include <umps3/umps/libumps.h>
-#include <umps3/umps/cp0.h>
+#include <umps/libumps.h>
+#include <umps/cp0.h>
 #include <ash.h>
 #include <pcb.h>
 #include <ns.h>
