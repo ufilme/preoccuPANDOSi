@@ -50,7 +50,7 @@ kernel: $(OBJECTS)
 
 $(BUILDOBJS)/%.o: src/%.c
 	@echo "Compiling '$<' into '$@'"
-	@$(CC) $(CFLAGS) $< -o $@ #> /dev/null 2>&1
+	@$(CC) $(CFLAGS) $< -o $@ > /dev/null 2>&1
 
 clean:
 	rm -rf $(BUILDOBJS)/*.o

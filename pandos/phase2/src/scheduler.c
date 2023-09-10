@@ -1,8 +1,11 @@
 #include "pcb.h"
-#include "asl.h"
 #include "ash.h"
 #include "scheduler.h"
 #include "pandos_const.h"
+#include <umps/libumps.h>
+#include <umps/cp0.h>
+
+#define TIME_SLICE 5000
 
 /*
     5 devices:
@@ -58,7 +61,7 @@ void schedule(bool isBlocked){
         HALT();
     
     if (softBlockCount > 0){
-        size_t status = getStatus();
+        int status = getSTATUS();
         status |= STATUS_IEc;
         status ^= STATUS_TE;
         WAIT();
@@ -66,9 +69,10 @@ void schedule(bool isBlocked){
         PANIC();
     }
 
-    setTIMER(TRANSLATE_TIME(TIME_SLICE));
+    //setTIMER(TRANSLATE_TIME(TIME_SLICE));
+    setTIMER(TIME_SLICE);
 
-    if (currentProcess != NULL and !isBlocked){
+    if (currentProcess != NULL && !isBlocked){
         // adds pointer to the pcb pointed by currentProcess to the readyQueue
         addToReadyQueue(&(*currentProcess));
     }
@@ -77,7 +81,8 @@ void schedule(bool isBlocked){
     pcb_t *p = removeProcQ(&readyQueue);
     currentProcess = p;
     currentProcess->p_s.status ^= STATUS_TE;
-    LDST(currentProcess->p_s);
+    //LDST(currentProcess->p_s);
+    LDST(&currentProcess->p_s);
 }
 
 void initScheduler(){

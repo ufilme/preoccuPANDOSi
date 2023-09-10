@@ -1,6 +1,6 @@
 #include <pcb.h>
 
-void handle_interrupt(int cause);
+void handle_interrupt(pcb_t *p, int cause);
 
 void handle_TLB_trap();
 

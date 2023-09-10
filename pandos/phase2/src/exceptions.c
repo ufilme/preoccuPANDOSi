@@ -1,7 +1,8 @@
 #include "exceptions.h"
 #include "scheduler.h"
+#include "ash.h"
+#include "ns.h"
 #include "pandos_const.h"
-#include <string.h>
 #include <umps/libumps.h>
 #include <umps/arch.h>
 #include <umps/cp0.h>
@@ -9,18 +10,55 @@
 #define US_TO_DS 100000 // microseconds to 100ms
 #define TIME_SLICE 5000
 
+void memcpy(void *dest, void *src, int len){
+    char *s = (char *)src;
+    char *d = (char *)dest;
+    for (int i = 0; i < len; ++i)
+        d[i] = s[i];
+}
+
 void _interrupt_local_timer(){
     pcb_t *currentProcess = getCurrentProcess();
-    setTIMER(TRANSLATE_TIME(TIME_SLICE));
+    //setTIMER(TRANSLATE_TIME(TIME_SLICE));
+    setTIMER(TIME_SLICE);
     memcpy(&currentProcess->p_s, (state_t *)BIOSDATAPAGE, sizeof(state_t));
     addToReadyQueue(currentProcess);
 }
 
-void _interrupt_timer(){
+void _verhogen(pcb_t *p){
+    int *sem_value = p->p_s.reg_a1;
+    if (*sem_value == 0){
+        //V is permitted, process continues to run
+        pcb_t *unblocked = removeBlocked(sem_value);
+        if (unblocked == NULL){
+            //there are no blocked processes, increment value
+            *sem_value = 1;
+        }
+        else{
+            //one process was removed from the blocked pcb list
+            //add it to the ready queue
+            addToReadyQueue(unblocked);
+        }
+    }
+    else{
+        //process is blocked on the semaphore, call scheduler (done in eccccezzzioni)
+        insertBlocked(sem_value, p);
+    }
+}
+
+//TO DO
+void V(pcb_t *p, int *sem_value){
+    if (sem_value != NULL)
+        p->p_s.reg_a1 = sem_value;
+    _verhogen(p);
+}
+
+
+void _interrupt_timer(pcb_t *p){
     int *sem;
     LDIT(US_TO_DS);     // load timer interval
     while (*(sem = getClockSemaphore()) != 1){
-        V(sem);
+        V(p, sem);
     }
 }
 
@@ -32,11 +70,11 @@ void _interrupt_terminal(){
     //TO DO
 }
 
-void handle_interrupt(int cause){
+void handle_interrupt(pcb_t *p, int cause){
     if (cause & CAUSE_IP(IL_CPUTIMER))
         return _interrupt_local_timer();
     else if (cause & CAUSE_IP(IL_TIMER))
-        return _interrupt_timer();
+        return _interrupt_timer(p);
     else if (cause & (CAUSE_IP(IL_DISK) | CAUSE_IP(IL_FLASH) | CAUSE_IP(IL_ETHERNET) | CAUSE_IP(IL_PRINTER)))
         return _interrupt_devices(cause);
     else if (cause & CAUSE_IP(IL_TERMINAL))
@@ -148,34 +186,6 @@ void P(pcb_t *p, int *sem_value){
     _passeren(p);
 }
 
-void _verhogen(pcb_t *p){
-    int *sem_value = p->p_s.reg_a1;
-    if (*sem_value == 0){
-        //V is permitted, process continues to run
-        pcb_t *unblocked = removeBlocked(sem_value);
-        if (unblocked == NULL){
-            //there are no blocked processes, increment value
-            *sem_value = 1;
-        }
-        else{
-            //one process was removed from the blocked pcb list
-            //add it to the ready queue
-            addToReadyQueue(unblocked);
-        }
-    }
-    else{
-        //process is blocked on the semaphore, call scheduler (done in eccccezzzioni)
-        insertBlocked(sem_value, p);
-    }
-}
-
-//TO DO
-void V(pcb_t *p, int *sem_value){
-    if (sem_value != NULL)
-        p->p_s.reg_a1 = sem_value;
-    _verhogen(p);
-}
-
 // //TO DO
 //     incrementSBlockedCount();
 //     //TO DO
@@ -215,22 +225,22 @@ void _get_process_id(pcb_t *p){
     }   
 }
 
-void _get_children_pid(pcb_t *p){
-    int children_number = 0;
-    struct list_head *child = &(p->p_child);
+// void _get_children_pid(pcb_t *p){
+//     int children_number = 0;
+//     struct list_head *child = &(p->p_child);
 
-    while (child != NULL)
-    {
-        if (children_number < p->p_s.reg_a2){
-            p->p_s.reg_a1[children_number] = child->p_pid;
-        }
+//     while (child != NULL)
+//     {
+//         if (children_number < p->p_s.reg_a2){
+//             p->p_s.reg_a1 = child;
+//         }
 
-        children_number++;
-        child = child->next;
-    }
+//         children_number++;
+//         child = child->next;
+//     }
 
-    p->p_s.reg_v0 = children_number;
-}
+//     p->p_s.reg_v0 = children_number;
+// }
 
 void handle_syscall(){
     pcb_t *currentProcess = getCurrentProcess();
@@ -269,7 +279,7 @@ void handle_syscall(){
                 break;
             case 10:
                 break;
-                _get_children_pid(currentProcess);
+                //_get_children_pid(currentProcess);
             default:
                 //killed if called a syscall with non-existing code
                 kill_progeny(currentProcess);
@@ -291,7 +301,8 @@ void eccccezzzioni(){
 
     switch(CAUSE_GET_EXCCODE(getCAUSE())){
         case 0:
-            handle_interrupt(CAUSE_GET_EXCCODE(getCAUSE()));
+            currentProcess = getCurrentProcess();
+            handle_interrupt(currentProcess, CAUSE_GET_EXCCODE(getCAUSE()));
             break;
         case 1:
         case 2:
